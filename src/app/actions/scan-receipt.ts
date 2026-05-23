@@ -1,6 +1,6 @@
 "use server"
 
-import { getVisionModel } from "@/lib/gemini"
+import { openai, GEMINI_MODEL } from "@/lib/gemini"
 import type { ReceiptScanResult } from "@/types/database"
 
 const RECEIPT_SCAN_PROMPT = `You are a financial document analyzer for a student organization's treasury system.
@@ -44,20 +44,25 @@ export const scanReceipt = async (formData: FormData): Promise<{
     const bytes = await file.arrayBuffer()
     const base64 = Buffer.from(bytes).toString("base64")
 
-    const model = getVisionModel()
-
-    const result = await model.generateContent([
-      RECEIPT_SCAN_PROMPT,
-      {
-        inlineData: {
-          mimeType: file.type,
-          data: base64,
+    const result = await openai.chat.completions.create({
+      model: GEMINI_MODEL,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: RECEIPT_SCAN_PROMPT },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${file.type};base64,${base64}`,
+              },
+            },
+          ],
         },
-      },
-    ])
+      ],
+    })
 
-    const response = result.response
-    const text = response.text()
+    const text = result.choices[0]?.message?.content || ""
 
     const cleanedText = text
       .replace(/```json\n?/g, "")

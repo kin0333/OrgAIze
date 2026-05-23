@@ -1,6 +1,6 @@
 "use server"
 
-import { getTextModel } from "@/lib/gemini"
+import { openai, GEMINI_MODEL } from "@/lib/gemini"
 import type { MOAGenerationResult, SponsorshipTier } from "@/types/database"
 
 interface GenerateMOAInput {
@@ -76,12 +76,16 @@ export const generateMOA = async (input: GenerateMOAInput): Promise<{
       return { success: false, error: "Organization name is required" }
     }
 
-    const model = getTextModel()
     const prompt = buildMOAPrompt(input)
 
-    const result = await model.generateContent(prompt)
-    const response = result.response
-    const text = response.text()
+    const result = await openai.chat.completions.create({
+      model: GEMINI_MODEL,
+      messages: [
+        { role: "user", content: prompt }
+      ],
+    })
+    
+    const text = result.choices[0]?.message?.content || ""
 
     const cleanedText = text
       .replace(/```json\n?/g, "")

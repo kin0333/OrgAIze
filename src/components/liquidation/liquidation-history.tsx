@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { getLiquidations } from "@/app/actions/liquidation-actions"
+import { useEffect, useState, useCallback } from "react"
+import { getLiquidations, approveLiquidation, rejectLiquidation } from "@/app/actions/liquidation-actions"
 import type { Liquidation } from "@/types/database"
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils"
 
@@ -12,19 +12,33 @@ interface LiquidationHistoryProps {
 export const LiquidationHistory = ({ refreshTrigger }: LiquidationHistoryProps) => {
   const [liquidations, setLiquidations] = useState<Liquidation[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [processingId, setProcessingId] = useState<string | null>(null)
+
+  const fetchLiquidations = useCallback(async () => {
+    const result = await getLiquidations()
+    if (result.success && result.data) {
+      setLiquidations(result.data)
+    }
+  }, [])
 
   useEffect(() => {
-    const fetchLiquidations = async () => {
-      setIsLoading(true)
-      const result = await getLiquidations()
-      if (result.success && result.data) {
-        setLiquidations(result.data)
-      }
-      setIsLoading(false)
-    }
+    setIsLoading(true)
+    fetchLiquidations().finally(() => setIsLoading(false))
+  }, [refreshTrigger, fetchLiquidations])
 
-    fetchLiquidations()
-  }, [refreshTrigger])
+  const handleApprove = async (id: string) => {
+    setProcessingId(id)
+    await approveLiquidation(id)
+    await fetchLiquidations()
+    setProcessingId(null)
+  }
+
+  const handleReject = async (id: string) => {
+    setProcessingId(id)
+    await rejectLiquidation(id)
+    await fetchLiquidations()
+    setProcessingId(null)
+  }
 
   if (isLoading) {
     return (
@@ -62,18 +76,19 @@ export const LiquidationHistory = ({ refreshTrigger }: LiquidationHistoryProps) 
         {liquidations.map((liquidation) => (
           <div
             key={liquidation.id}
-            className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-[#e0f7f1]/10"
+            className="grid grid-cols-[40px_1fr_100px_160px] items-center gap-4 px-6 py-4 transition-colors hover:bg-[#e0f7f1]/10"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e0f7f1] text-sm font-bold text-[#004d00]">
               {liquidation.vendor_name.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0">
               <p className="text-sm font-medium text-slate-700 truncate">
                 {liquidation.vendor_name}
               </p>
               <p className="text-xs text-slate-400">{formatDate(liquidation.date)}</p>
             </div>
-            <div className="text-right">
+            
+            <div className="flex flex-col items-end text-right">
               <p className="font-mono text-sm font-semibold text-slate-700">
                 {formatCurrency(liquidation.amount)}
               </p>
@@ -82,6 +97,27 @@ export const LiquidationHistory = ({ refreshTrigger }: LiquidationHistoryProps) 
               >
                 {liquidation.status}
               </span>
+            </div>
+
+            <div className="flex items-center justify-end">
+              {liquidation.status === "Pending" && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleReject(liquidation.id)}
+                    disabled={processingId === liquidation.id}
+                    className="rounded-lg border border-red-200 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => handleApprove(liquidation.id)}
+                    disabled={processingId === liquidation.id}
+                    className="rounded-lg bg-[#007a33] px-3 py-1 text-xs font-medium text-white hover:bg-[#004d00] disabled:opacity-50 w-20 text-center"
+                  >
+                    {processingId === liquidation.id ? "..." : "Approve"}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}

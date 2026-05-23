@@ -7,7 +7,7 @@ import type { Metadata } from "next"
 export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
-  title: "Dashboard — OrgAIze",
+  title: "Dashboard",
   description: "Overview of your organization's financial health, pending liquidations, and active sponsorships.",
 }
 
