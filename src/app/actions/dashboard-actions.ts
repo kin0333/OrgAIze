@@ -3,8 +3,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import type { DashboardMetrics } from "@/types/database"
 import { mockDb, isMissingTableError } from "@/lib/mock-db"
-
-const FALLBACK_BUDGET = 150000
+import { revalidatePath } from "next/cache"
 
 const getEmptyMetrics = (): DashboardMetrics => {
   const allLiquidations = mockDb.liquidations
@@ -22,7 +21,7 @@ const getEmptyMetrics = (): DashboardMetrics => {
   ).length
 
   return {
-    totalBudget: FALLBACK_BUDGET,
+    totalBudget: mockDb.budget,
     totalExpenses,
     pendingLiquidations,
     approvedLiquidations,
@@ -66,7 +65,7 @@ export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
       .select("*", { count: "exact", head: true })
 
     return {
-      totalBudget: FALLBACK_BUDGET,
+      totalBudget: mockDb.budget,
       totalExpenses,
       pendingLiquidations,
       approvedLiquidations,
@@ -77,4 +76,11 @@ export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
     console.error("Dashboard metrics error:", error)
     return getEmptyMetrics()
   }
+}
+
+export const updateTotalBudget = async (newBudget: number): Promise<{ success: boolean }> => {
+  mockDb.budget = newBudget
+  // In a real app, you would also update the budget in the database here.
+  revalidatePath("/")
+  return { success: true }
 }

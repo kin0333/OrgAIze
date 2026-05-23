@@ -1,5 +1,6 @@
 import { getDashboardMetrics } from "@/app/actions/dashboard-actions"
 import { MetricCard } from "@/components/dashboard/metric-card"
+import { EditableBudgetCard } from "@/components/dashboard/editable-budget-card"
 import { RecentLiquidationsTable } from "@/components/dashboard/recent-liquidations-table"
 import { formatCurrency } from "@/lib/utils"
 import type { Metadata } from "next"
@@ -62,10 +63,8 @@ const DashboardPage = async () => {
 
       {/* Metric Cards Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Total Budget"
-          value={formatCurrency(metrics.totalBudget)}
-          subtitle="Semester allocation"
+        <EditableBudgetCard
+          initialBudget={metrics.totalBudget}
           icon={<WalletIcon />}
           accentColor="#007a33"
         />

@@ -72,11 +72,13 @@ const initialSponsorships = [
 const globalForMockDb = globalThis as unknown as {
   mockLiquidations: Liquidation[]
   mockSponsorships: any[]
+  mockBudget: number
 }
 
 export const mockDb = {
   liquidations: globalForMockDb.mockLiquidations || (globalForMockDb.mockLiquidations = initialLiquidations),
   sponsorships: globalForMockDb.mockSponsorships || (globalForMockDb.mockSponsorships = initialSponsorships),
+  budget: globalForMockDb.mockBudget || (globalForMockDb.mockBudget = 150000),
 }
 
 export const isMissingTableError = (error: any) => {
